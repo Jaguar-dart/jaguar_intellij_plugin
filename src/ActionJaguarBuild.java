@@ -69,8 +69,6 @@ public class ActionJaguarBuild extends AnAction {
         final Module module = LangDataKeys.MODULE.getData(e.getDataContext());
         final PsiFile psiFile = CommonDataKeys.PSI_FILE.getData(e.getDataContext());
 
-        System.out.print(module.getModuleFilePath());
-
         if (module != null && psiFile != null && psiFile.getName().equalsIgnoreCase(JAGUAR_YAML)) {
             final VirtualFile file = psiFile.getOriginalFile().getVirtualFile();
             return file != null ? Pair.create(module, file) : null;
@@ -89,7 +87,7 @@ public class ActionJaguarBuild extends AnAction {
     private GeneralCommandLine buildCommand(VirtualFile path) {
         final GeneralCommandLine command = new GeneralCommandLine().withWorkDirectory(path.getPath());
 
-        command.setExePath("/home/teja/.pub-cache/bin/jaguar");
+        command.setExePath("/home/teja/.pub-cache/bin/jaguar"); //TODO add settings and get it from there
         command.addParameter("build");
 
         return command;
