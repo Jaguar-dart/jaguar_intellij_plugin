@@ -12,6 +12,10 @@ import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.actions.CloseActiveTabAction;
+import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
@@ -22,6 +26,7 @@ import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.io.FileUtil;
+import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -36,6 +41,9 @@ import com.intellij.ui.content.MessageView;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ActionJaguarBuild extends AnAction {
@@ -48,11 +56,18 @@ public class ActionJaguarBuild extends AnAction {
         if (moduleAndPubspecYamlFile == null) return;
 
         final Module module = moduleAndPubspecYamlFile.first;
-        final VirtualFile pubspec = moduleAndPubspecYamlFile.second;
+        final VirtualFile jaguarYamlFile = moduleAndPubspecYamlFile.second;
 
-        final GeneralCommandLine command = buildCommand(pubspec.getParent());
+        final GeneralCommandLine command = buildCommand(jaguarYamlFile.getParent());
 
-        execute(module, pubspec.getParent(), command, "Jaguar build");  //TODO fix action title
+        if (command == null) {
+            Notifications.Bus.notify(
+                    new Notification("jaguar", "Jaguar executable not found!", "Configure Jaguar executable path in 'Settings -> Tools -> Jaguar.dart -> Jaguar executable path'", NotificationType.ERROR));
+
+            return;
+        }
+
+        execute(module, jaguarYamlFile.getParent(), command, "Jaguar build");  //TODO fix action title
     }
 
     @Override
@@ -67,13 +82,29 @@ public class ActionJaguarBuild extends AnAction {
     @Nullable
     private static Pair<Module, VirtualFile> getModuleAndPubspecYamlFile(final AnActionEvent e) {
         final Module module = LangDataKeys.MODULE.getData(e.getDataContext());
-        final PsiFile psiFile = CommonDataKeys.PSI_FILE.getData(e.getDataContext());
 
-        if (module != null && psiFile != null && psiFile.getName().equalsIgnoreCase(JAGUAR_YAML)) {
-            final VirtualFile file = psiFile.getOriginalFile().getVirtualFile();
-            return file != null ? Pair.create(module, file) : null;
+        if(module == null || module.getModuleFile() == null) {
+            return null;
         }
-        return null;
+
+        String basePath = module.getModuleFile().getParent().getParent().getPath();
+        Path path = Paths.get(basePath, JAGUAR_YAML);
+
+        VirtualFile file = LocalFileSystem.getInstance().refreshAndFindFileByPath(path.toString());
+
+        if(file == null) {
+            return null;
+        }
+
+        if(!file.exists()) {
+            return null;
+        }
+
+        if(file.isDirectory()) {
+            return null;
+        }
+
+        return Pair.create(module, file);
     }
 
     private static final String JAGUAR_YAML = "jaguar.yaml";
@@ -87,7 +118,26 @@ public class ActionJaguarBuild extends AnAction {
     private GeneralCommandLine buildCommand(VirtualFile path) {
         final GeneralCommandLine command = new GeneralCommandLine().withWorkDirectory(path.getPath());
 
-        command.setExePath("/home/teja/.pub-cache/bin/jaguar"); //TODO add settings and get it from there
+        String jaguarExePath = PropertiesComponent.getInstance().getValue(JaguarSettingsManager.kJaguarExePath);
+
+        if (jaguarExePath == null) {
+            return null;
+        }
+
+        File exeFile = new File(jaguarExePath);
+        if(!exeFile.exists()) {
+            return null;
+        }
+
+        if(!exeFile.isFile()) {
+            return null;
+        }
+
+        if(!exeFile.canExecute()) {
+            return null;
+        }
+
+        command.setExePath(jaguarExePath);
         command.addParameter("build");
 
         return command;
@@ -256,10 +306,10 @@ public class ActionJaguarBuild extends AnAction {
         private StopProcessAction stopProcessAction;
 
         private WindowContentInfo(@NotNull final Module module,
-                                 @NotNull final VirtualFile pubspecFile,
-                                 @NotNull final GeneralCommandLine command,
-                                 @NotNull final String actionTitle,
-                                 @NotNull final ConsoleView console) {
+                                  @NotNull final VirtualFile pubspecFile,
+                                  @NotNull final GeneralCommandLine command,
+                                  @NotNull final String actionTitle,
+                                  @NotNull final ConsoleView console) {
             this.module = module;
             this.pubspecFile = pubspecFile;
             this.command = command;
