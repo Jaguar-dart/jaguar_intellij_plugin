@@ -1,0 +1,61 @@
+<idea-plugin version="2">
+  <id>com.your.company.unique.plugin.id</id>
+  <name>Plugin display name here</name>
+  <version>1.0</version>
+  <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+
+  <description><![CDATA[
+      Enter short description for your plugin here.<br>
+      <em>most HTML tags may be used</em>
+    ]]></description>
+
+  <change-notes><![CDATA[
+      Add change notes here.<br>
+      <em>most HTML tags may be used</em>
+    ]]>
+  </change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="145.0"/>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <!-- uncomment to enable plugin in all products
+  <depends>com.intellij.modules.lang</depends>
+  -->
+
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationConfigurable groupId="tools" displayName="Jaguar.dart" id="preferences.jaguar.dart" instance="org.jaguar.dart.JaguarSettingsManager" />
+
+    <iconProvider implementation="org.jaguar.dart.JaguarIconProvider"/>
+
+    <fileEditorProvider implementation="org.jaguar.dart.JaguarFileEditorProvider" order="first"/>
+  </extensions>
+
+  <actions>
+    <!-- Add your actions here -->
+    <action id="jaguar.dart.exec.build" class="org.jaguar.dart.ActionJaguarBuild" text="Jaguar build"
+            description="Executes &#39;jaguar build&#39; on current project">
+      <add-to-group group-id="BuildMenu" anchor="first"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="ctrl J"/>
+    </action>
+
+    <group id="jaguar.dart.addto.jaguar.yaml" text="Jaguar.dart" description="Jaguar.dart actions" popup="true">
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+
+      <action id="jaguar.dart.addto.jaguar.yaml.api" class="org.jaguar.dart.projectTree.ActionAddApi" text="Add Api/RouteGroup"
+              description="Add this library as Api/RouteGroup to jaguar.yaml">
+      </action>
+      <action id="jaguar.dart.addto.jaguar.yaml.serializer" class="org.jaguar.dart.projectTree.ActionAddSerializer" text="Add Serializer"
+              description="Add this library as Serializer to jaguar.yaml">
+      </action>
+      <action id="jaguar.dart.addto.jaguar.yaml.validator" class="org.jaguar.dart.projectTree.ActionAddValidator" text="Add Validator"
+              description="Add this library as Validator to jaguar.yaml">
+      </action>
+      <action id="jaguar.dart.addto.jaguar.yaml.bean" class="org.jaguar.dart.projectTree.ActionAddBean" text="Add ORM bean"
+              description="Add this library as ORM bean to jaguar.yaml">
+      </action>
+    </group>
+  </actions>
+
+</idea-plugin>

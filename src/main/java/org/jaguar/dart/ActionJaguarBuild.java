@@ -1,3 +1,5 @@
+package org.jaguar.dart;
+
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.actions.StopProcessAction;
 import com.intellij.execution.configurations.GeneralCommandLine;
@@ -32,7 +34,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowId;
 import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.psi.PsiFile;
 import com.intellij.ui.UIBundle;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
@@ -107,7 +108,7 @@ public class ActionJaguarBuild extends AnAction {
         return Pair.create(module, file);
     }
 
-    private static final String JAGUAR_YAML = "jaguar.yaml";
+    public static final String JAGUAR_YAML = "jaguar.yaml";
 
     private static final AtomicBoolean ourInProgress = new AtomicBoolean(false);
 
