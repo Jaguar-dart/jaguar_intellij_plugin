@@ -70,7 +70,11 @@ public class JaguarSettingsManager implements SearchableConfigurable {
   }
 
   public static String getJaguarExePath() {
-    return PropertiesComponent.getInstance().getValue(JaguarSettingsManager.kJaguarExePath);
+    String ret = PropertiesComponent.getInstance().getValue(JaguarSettingsManager.kJaguarExePath);
+
+    if(ret == null) ret = "";
+
+    return ret;
   }
 
   public static void setJaguarExePath(@NotNull String value) {

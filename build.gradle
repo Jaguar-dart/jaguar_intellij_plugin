@@ -27,7 +27,7 @@ intellij {
     pluginName 'jaguar_intellij_plugin'
 }
 
-version '0.1' // Plugin version
+version '0.2' // Plugin version
 
 
 repositories {
