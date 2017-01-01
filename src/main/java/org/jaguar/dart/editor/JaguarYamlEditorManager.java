@@ -1,8 +1,5 @@
 package org.jaguar.dart.editor;
 
-import com.esotericsoftware.yamlbeans.YamlException;
-import com.esotericsoftware.yamlbeans.YamlReader;
-import com.esotericsoftware.yamlbeans.YamlWriter;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentAdapter;
 import com.intellij.openapi.editor.event.DocumentEvent;
@@ -12,32 +9,31 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.util.Alarm;
-import org.jaguar.dart.ActionJaguarBuild;
 import org.jaguar.dart.JaguarYamlEditorGui;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.FileWriter;
-import java.io.StringWriter;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashSet;
-
 public class JaguarYamlEditorManager {
-  @NotNull private final JaguarYamlEditorGui gui;
+  @NotNull
+  private final JaguarYamlEditorGui gui;
 
-  @NotNull private final Module module;
+  @NotNull
+  private final Module module;
 
-  @NotNull private final Project project;
+  @NotNull
+  private final Project project;
 
   private boolean myInsideChange = false;
 
-  @NotNull private final VirtualFile file;
+  @NotNull
+  private final VirtualFile file;
 
   private final Document myDocument;
 
-  @NotNull private final DocumentAdapter myDocumentListener;
+  @NotNull
+  private final DocumentAdapter myDocumentListener;
 
-  @NotNull private JaguarYaml yaml = new JaguarYaml();
+  @NotNull
+  private JaguarYaml yaml = new JaguarYaml();
 
   public JaguarYamlEditorManager(@NotNull JaguarYamlEditorGui gui, @NotNull Module module, @NotNull Project project, @NotNull VirtualFile file) {
     this.gui = gui;
@@ -59,7 +55,7 @@ public class JaguarYamlEditorManager {
 
     // Prepare document
     myDocument = FileDocumentManager.getInstance().getDocument(file);
-    if(myDocument != null) {
+    if (myDocument != null) {
       myDocument.addDocumentListener(myDocumentListener);
     }
 
@@ -102,8 +98,7 @@ public class JaguarYamlEditorManager {
         return;
       }
 
-      System.out.println("Synchronizing GUI editor " + file.getName() + " to document");
-      if(myDocument != null) {
+      if (myDocument != null) {
         PsiDocumentManager.getInstance(project).commitDocument(myDocument);
       }
 

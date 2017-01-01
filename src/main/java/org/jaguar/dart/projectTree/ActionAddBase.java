@@ -35,19 +35,19 @@ abstract public class ActionAddBase extends AnAction {
 
   @NotNull
   static String relativePath(@NotNull Module module, @NotNull VirtualFile file) {
-    if(module.getModuleFile() == null) return "";
+    if (module.getModuleFile() == null) return "";
 
     String path = file.getPath();
 
     String modulePath = module.getModuleFile().getParent().getParent().getPath();
 
-    if(!path.startsWith(modulePath)) return "";
+    if (!path.startsWith(modulePath)) return "";
 
     String ret = path.substring(modulePath.length());
 
-    if(ret.length() == 0) return  "";
+    if (ret.length() == 0) return "";
 
-    if(ret.startsWith(File.separator)) {
+    if (ret.startsWith(File.separator)) {
       ret = ret.substring(1);
     }
 

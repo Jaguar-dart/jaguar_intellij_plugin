@@ -11,17 +11,16 @@ import com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.annotations.NotNull;
 
 public class JaguarFileEditorProvider implements FileEditorProvider, DumbAware {
-    public boolean accept(@NotNull final Project project, @NotNull final VirtualFile file) {
-        System.out.println(file.getName());
-        return
-                file.getName().equals(ActionJaguarBuild.JAGUAR_YAML) &&
-                        (ModuleUtil.findModuleForFile(file, project) != null || file instanceof LightVirtualFile);
-    }
+  public boolean accept(@NotNull final Project project, @NotNull final VirtualFile file) {
+    return
+        file.getName().equals(ActionJaguarBuild.JAGUAR_YAML) &&
+            (ModuleUtil.findModuleForFile(file, project) != null || file instanceof LightVirtualFile);
+  }
 
-    @NotNull
-    public FileEditor createEditor(@NotNull final Project project, @NotNull final VirtualFile file) {
-        return new JaguarFileEditor(project, file);
-    }
+  @NotNull
+  public FileEditor createEditor(@NotNull final Project project, @NotNull final VirtualFile file) {
+    return new JaguarFileEditor(project, file);
+  }
 
     /* TODO
     @NotNull
@@ -31,13 +30,13 @@ public class JaguarFileEditorProvider implements FileEditorProvider, DumbAware {
     }
     */
 
-    @NotNull
-    public String getEditorTypeId() {
-        return "jaguar.yaml";
-    }
+  @NotNull
+  public String getEditorTypeId() {
+    return "jaguar.yaml";
+  }
 
-    @NotNull
-    public FileEditorPolicy getPolicy() {
-        return FileEditorPolicy.PLACE_AFTER_DEFAULT_EDITOR;
-    }
+  @NotNull
+  public FileEditorPolicy getPolicy() {
+    return FileEditorPolicy.PLACE_AFTER_DEFAULT_EDITOR;
+  }
 }

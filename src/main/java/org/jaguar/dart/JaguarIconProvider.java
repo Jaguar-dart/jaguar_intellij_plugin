@@ -12,17 +12,17 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 
 public class JaguarIconProvider extends IconProvider {
-    @Nullable
-    @Override
-    public Icon getIcon(@NotNull PsiElement psiElement, @Iconable.IconFlags int i) {
-        if(psiElement instanceof PsiFile && !((PsiFile) psiElement).isDirectory()) {
-            final VirtualFile file = ((PsiFile)psiElement).getVirtualFile();
+  @Nullable
+  @Override
+  public Icon getIcon(@NotNull PsiElement psiElement, @Iconable.IconFlags int i) {
+    if (psiElement instanceof PsiFile && !((PsiFile) psiElement).isDirectory()) {
+      final VirtualFile file = ((PsiFile) psiElement).getVirtualFile();
 
-            if(file.getName().equals(ActionJaguarBuild.JAGUAR_YAML)) {
-                return IconLoader.getIcon("/icons/jaguar.png");
-            }
-        }
-
-        return null;
+      if (file.getName().equals(ActionJaguarBuild.JAGUAR_YAML)) {
+        return IconLoader.getIcon("/icons/jaguar.png");
+      }
     }
+
+    return null;
+  }
 }

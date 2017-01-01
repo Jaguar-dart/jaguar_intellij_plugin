@@ -24,10 +24,11 @@ public class JaguarFileEditor extends UserDataHolderBase implements FileEditor, 
 
   private final JaguarYamlEditorGui gui;
 
-  @NotNull private final JaguarYamlEditorManager manager;
+  @NotNull
+  private final JaguarYamlEditorManager manager;
 
   JaguarFileEditor(@NotNull final Project project, @NotNull final VirtualFile file) {
-    final VirtualFile vf = file instanceof LightVirtualFile ? ((LightVirtualFile)file).getOriginalFile() : file;
+    final VirtualFile vf = file instanceof LightVirtualFile ? ((LightVirtualFile) file).getOriginalFile() : file;
     final Module module = ModuleUtilCore.findModuleForFile(vf, project);
     if (module == null) {
       throw new IllegalArgumentException("No module for file " + file + " in project " + project);
@@ -39,7 +40,7 @@ public class JaguarFileEditor extends UserDataHolderBase implements FileEditor, 
   }
 
   @NotNull
-  public JComponent getComponent(){
+  public JComponent getComponent() {
     return gui.getRootPanel();
   }
 
@@ -48,33 +49,33 @@ public class JaguarFileEditor extends UserDataHolderBase implements FileEditor, 
     manager.dispose();
   }
 
-  public JComponent getPreferredFocusedComponent(){
+  public JComponent getPreferredFocusedComponent() {
     return gui.getPreferredFocusedComponent();
   }
 
   @NotNull
-  public String getName(){
+  public String getName() {
     return "jaguar.yaml Editor";
   }
 
   @Override
-  public boolean isModified(){
+  public boolean isModified() {
     return false;
   }
 
   @Override
-  public boolean isValid(){
+  public boolean isValid() {
     return
         FileDocumentManager.getInstance().getDocument(myFile) != null &&
             myFile.getName().equals(ActionJaguarBuild.JAGUAR_YAML);
   }
 
   @Override
-  public void selectNotify(){
+  public void selectNotify() {
   }
 
   @Override
-  public void deselectNotify(){
+  public void deselectNotify() {
   }
 
   @Override
@@ -95,7 +96,7 @@ public class JaguarFileEditor extends UserDataHolderBase implements FileEditor, 
     return null;
   }
 
-  public void setState(@NotNull final FileEditorState state){
+  public void setState(@NotNull final FileEditorState state) {
     //TODO
   }
 

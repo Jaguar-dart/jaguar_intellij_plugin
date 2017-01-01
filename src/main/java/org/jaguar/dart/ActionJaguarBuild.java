@@ -14,7 +14,6 @@ import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.actions.CloseActiveTabAction;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
@@ -42,320 +41,304 @@ import com.intellij.ui.content.MessageView;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ActionJaguarBuild extends AnAction {
 
-    private static final Key<WindowContentInfo> WINDOW_CONTENT_INFO_KEY = Key.create("WINDOW_CONTENT_INFO_KEY");
+  private static final Key<WindowContentInfo> WINDOW_CONTENT_INFO_KEY = Key.create("WINDOW_CONTENT_INFO_KEY");
 
-    @Override
-    public void actionPerformed(AnActionEvent e) {
-        final Pair<Module, VirtualFile> moduleAndPubspecYamlFile = getModuleAndPubspecYamlFile(e);
-        if (moduleAndPubspecYamlFile == null) return;
+  @Override
+  public void actionPerformed(AnActionEvent e) {
+    final Pair<Module, VirtualFile> moduleAndPubspecYamlFile = getModuleAndPubspecYamlFile(e);
+    if (moduleAndPubspecYamlFile == null) return;
 
-        final Module module = moduleAndPubspecYamlFile.first;
-        final VirtualFile jaguarYamlFile = moduleAndPubspecYamlFile.second;
+    final Module module = moduleAndPubspecYamlFile.first;
+    final VirtualFile jaguarYamlFile = moduleAndPubspecYamlFile.second;
 
-        final GeneralCommandLine command = buildCommand(jaguarYamlFile.getParent());
+    final GeneralCommandLine command = buildCommand(jaguarYamlFile.getParent());
 
-        if (command == null) {
-            Notifications.Bus.notify(
-                    new Notification("jaguar", "Jaguar executable not found!", "Configure Jaguar executable path in 'Settings -> Tools -> Jaguar.dart -> Jaguar executable path'", NotificationType.ERROR));
+    if (command == null) {
+      Notifications.Bus.notify(
+          new Notification("jaguar", "Jaguar executable not found!", "Configure Jaguar executable path in 'Settings -> Tools -> Jaguar.dart -> Jaguar executable path'", NotificationType.ERROR));
 
-            return;
-        }
-
-        execute(module, jaguarYamlFile.getParent(), command, "Jaguar build");  //TODO fix action title
+      return;
     }
 
-    @Override
-    public void update(@NotNull AnActionEvent e) {
-        super.update(e);
+    execute(module, jaguarYamlFile.getParent(), command, "Jaguar build");  //TODO fix action title
+  }
 
-        final boolean visible = getModuleAndPubspecYamlFile(e) != null;
-        e.getPresentation().setVisible(visible);
-        e.getPresentation().setEnabled(visible && !isInProgress());
+  @Override
+  public void update(@NotNull AnActionEvent e) {
+    super.update(e);
+
+    final boolean visible = getModuleAndPubspecYamlFile(e) != null;
+    e.getPresentation().setVisible(visible);
+    e.getPresentation().setEnabled(visible && !isInProgress());
+  }
+
+  @Nullable
+  private static Pair<Module, VirtualFile> getModuleAndPubspecYamlFile(final AnActionEvent e) {
+    final Module module = LangDataKeys.MODULE.getData(e.getDataContext());
+
+    if (module == null || module.getModuleFile() == null) {
+      return null;
     }
 
-    @Nullable
-    private static Pair<Module, VirtualFile> getModuleAndPubspecYamlFile(final AnActionEvent e) {
-        final Module module = LangDataKeys.MODULE.getData(e.getDataContext());
+    String basePath = module.getModuleFile().getParent().getParent().getPath();
+    Path path = Paths.get(basePath, JAGUAR_YAML);
 
-        if(module == null || module.getModuleFile() == null) {
-            return null;
-        }
+    VirtualFile file = LocalFileSystem.getInstance().refreshAndFindFileByPath(path.toString());
 
-        String basePath = module.getModuleFile().getParent().getParent().getPath();
-        Path path = Paths.get(basePath, JAGUAR_YAML);
-
-        VirtualFile file = LocalFileSystem.getInstance().refreshAndFindFileByPath(path.toString());
-
-        if(file == null) {
-            return null;
-        }
-
-        if(!file.exists()) {
-            return null;
-        }
-
-        if(file.isDirectory()) {
-            return null;
-        }
-
-        return Pair.create(module, file);
+    if (file == null) {
+      return null;
     }
 
-    public static final String JAGUAR_YAML = "jaguar.yaml";
-
-    private static final AtomicBoolean ourInProgress = new AtomicBoolean(false);
-
-    private static boolean isInProgress() {
-        return ourInProgress.get();
+    if (!file.exists()) {
+      return null;
     }
 
-    private GeneralCommandLine buildCommand(VirtualFile path) {
-        final GeneralCommandLine command = new GeneralCommandLine().withWorkDirectory(path.getPath());
-
-        String jaguarExePath = PropertiesComponent.getInstance().getValue(JaguarSettingsManager.kJaguarExePath);
-
-        if (jaguarExePath == null) {
-            return null;
-        }
-
-        File exeFile = new File(jaguarExePath);
-        if(!exeFile.exists()) {
-            return null;
-        }
-
-        if(!exeFile.isFile()) {
-            return null;
-        }
-
-        if(!exeFile.canExecute()) {
-            return null;
-        }
-
-        command.setExePath(jaguarExePath);
-        command.addParameter("build");
-
-        return command;
+    if (file.isDirectory()) {
+      return null;
     }
 
-    private static void execute(@NotNull final Module module,
-                                @NotNull final VirtualFile workingDir,
-                                @NotNull final GeneralCommandLine command,
-                                @NotNull final String actionTitle) {
-        try {
-            final OSProcessHandler processHandler = new OSProcessHandler(command);
+    return Pair.create(module, file);
+  }
 
-            processHandler.addProcessListener(new ProcessAdapter() {
-                @Override
-                public void processTerminated(final ProcessEvent event) {
-                    ourInProgress.set(false);
+  public static final String JAGUAR_YAML = "jaguar.yaml";
 
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        if (!module.isDisposed()) {
-                            // refresh later than exclude, otherwise IDE may start indexing excluded folders
-                            VfsUtil.markDirtyAndRefresh(true, true, true, workingDir);
-                        }
-                    });
-                }
-            });
+  private static final AtomicBoolean ourInProgress = new AtomicBoolean(false);
 
-            showOutput(module, command, processHandler, workingDir, actionTitle);
-        } catch (ExecutionException e) {
-            e.printStackTrace();
+  private static boolean isInProgress() {
+    return ourInProgress.get();
+  }
 
-            ourInProgress.set(false);
+  private GeneralCommandLine buildCommand(VirtualFile path) {
+    final GeneralCommandLine command = new GeneralCommandLine().withWorkDirectory(path.getPath());
+
+    if (!JaguarSettingsManager.isJaguarExePathValid()) return null;
+
+    String jaguarExePath = JaguarSettingsManager.getJaguarExePath();
+
+    command.setExePath(jaguarExePath);
+    command.addParameter("build");
+
+    return command;
+  }
+
+  private static void execute(@NotNull final Module module,
+                              @NotNull final VirtualFile workingDir,
+                              @NotNull final GeneralCommandLine command,
+                              @NotNull final String actionTitle) {
+    try {
+      final OSProcessHandler processHandler = new OSProcessHandler(command);
+
+      processHandler.addProcessListener(new ProcessAdapter() {
+        @Override
+        public void processTerminated(final ProcessEvent event) {
+          ourInProgress.set(false);
+
+          ApplicationManager.getApplication().invokeLater(() -> {
+            if (!module.isDisposed()) {
+              // refresh later than exclude, otherwise IDE may start indexing excluded folders
+              VfsUtil.markDirtyAndRefresh(true, true, true, workingDir);
+            }
+          });
+        }
+      });
+
+      showOutput(module, command, processHandler, workingDir, actionTitle);
+    } catch (ExecutionException e) {
+      e.printStackTrace();
+
+      ourInProgress.set(false);
 
             /* TODO
             // may be better show it in Messages tool window console?
             Notifications.Bus.notify(
                     new Notification(GROUP_DISPLAY_ID, actionTitle, DartBundle.message("dart.pub.exception", e.getMessage()), NotificationType.ERROR));
             */
-        }
-        //TODO
+    }
+    //TODO
+  }
+
+  private static void showOutput(@NotNull final Module module,
+                                 @NotNull final GeneralCommandLine command,
+                                 @NotNull final OSProcessHandler processHandler,
+                                 @NotNull final VirtualFile workingDir,
+                                 @NotNull final String actionTitle) {
+    final ConsoleView console;
+    WindowContentInfo info = findExistingInfoForCommand(module.getProject(), command);
+
+    if (info != null) {
+      // rerunning the same pub command in the same tool window tab (corresponding tool window action invoked)
+      console = info.console;
+      console.clear();
+    } else {
+      console = createConsole(module.getProject(), workingDir);
+      info = new WindowContentInfo(module, workingDir, command, actionTitle, console);
+
+      final ActionToolbar actionToolbar = createToolWindowActionsBar(info);
+
+      final SimpleToolWindowPanel toolWindowPanel = new SimpleToolWindowPanel(false, true);
+      toolWindowPanel.setContent(console.getComponent());
+      toolWindowPanel.setToolbar(actionToolbar.getComponent());
+
+      final Content content = ContentFactory.SERVICE.getInstance().createContent(toolWindowPanel.getComponent(), actionTitle, true);
+      content.putUserData(WINDOW_CONTENT_INFO_KEY, info);
+      Disposer.register(content, console);
+
+      final ContentManager contentManager = MessageView.SERVICE.getInstance(module.getProject()).getContentManager();
+      removeOldTabs(contentManager);
+      contentManager.addContent(content);
+      contentManager.setSelectedContent(content);
+
+      final ToolWindow toolWindow = ToolWindowManager.getInstance(module.getProject()).getToolWindow(ToolWindowId.MESSAGES_WINDOW);
+      toolWindow.activate(null, true);
     }
 
-    private static void showOutput(@NotNull final Module module,
-                                   @NotNull final GeneralCommandLine command,
-                                   @NotNull final OSProcessHandler processHandler,
-                                   @NotNull final VirtualFile workingDir,
-                                   @NotNull final String actionTitle) {
-        final ConsoleView console;
-        WindowContentInfo info = findExistingInfoForCommand(module.getProject(), command);
+    info.rerunPubCommandAction.setProcessHandler(processHandler);
+    info.stopProcessAction.setProcessHandler(processHandler);
 
-        if (info != null) {
-            // rerunning the same pub command in the same tool window tab (corresponding tool window action invoked)
-            console = info.console;
-            console.clear();
-        } else {
-            console = createConsole(module.getProject(), workingDir);
-            info = new WindowContentInfo(module, workingDir, command, actionTitle, console);
+    processHandler.addProcessListener(new ProcessAdapter() {
+      @Override
+      public void processTerminated(final ProcessEvent event) {
+        console.print(IdeBundle.message("finished.with.exit.code.text.message", event.getExitCode()), ConsoleViewContentType.SYSTEM_OUTPUT);
+      }
+    });
 
-            final ActionToolbar actionToolbar = createToolWindowActionsBar(info);
+    console.print(FileUtil.toSystemDependentName(workingDir.getPath()) + "\n",
+        ConsoleViewContentType.SYSTEM_OUTPUT);
+    console.attachToProcess(processHandler);
+    processHandler.startNotify();
+  }
 
-            final SimpleToolWindowPanel toolWindowPanel = new SimpleToolWindowPanel(false, true);
-            toolWindowPanel.setContent(console.getComponent());
-            toolWindowPanel.setToolbar(actionToolbar.getComponent());
-
-            final Content content = ContentFactory.SERVICE.getInstance().createContent(toolWindowPanel.getComponent(), actionTitle, true);
-            content.putUserData(WINDOW_CONTENT_INFO_KEY, info);
-            Disposer.register(content, console);
-
-            final ContentManager contentManager = MessageView.SERVICE.getInstance(module.getProject()).getContentManager();
-            removeOldTabs(contentManager);
-            contentManager.addContent(content);
-            contentManager.setSelectedContent(content);
-
-            final ToolWindow toolWindow = ToolWindowManager.getInstance(module.getProject()).getToolWindow(ToolWindowId.MESSAGES_WINDOW);
-            toolWindow.activate(null, true);
-        }
-
-        info.rerunPubCommandAction.setProcessHandler(processHandler);
-        info.stopProcessAction.setProcessHandler(processHandler);
-
-        processHandler.addProcessListener(new ProcessAdapter() {
-            @Override
-            public void processTerminated(final ProcessEvent event) {
-                console.print(IdeBundle.message("finished.with.exit.code.text.message", event.getExitCode()), ConsoleViewContentType.SYSTEM_OUTPUT);
-            }
-        });
-
-        console.print(FileUtil.toSystemDependentName(workingDir.getPath()) + "\n",
-                ConsoleViewContentType.SYSTEM_OUTPUT);
-        console.attachToProcess(processHandler);
-        processHandler.startNotify();
+  @Nullable
+  private static WindowContentInfo findExistingInfoForCommand(final Project project, @NotNull final GeneralCommandLine command) {
+    for (Content content : MessageView.SERVICE.getInstance(project).getContentManager().getContents()) {
+      final WindowContentInfo info = content.getUserData(WINDOW_CONTENT_INFO_KEY);
+      if (info != null && info.command == command) {
+        return info;
+      }
     }
+    return null;
+  }
 
-    @Nullable
-    private static WindowContentInfo findExistingInfoForCommand(final Project project, @NotNull final GeneralCommandLine command) {
-        for (Content content : MessageView.SERVICE.getInstance(project).getContentManager().getContents()) {
-            final WindowContentInfo info = content.getUserData(WINDOW_CONTENT_INFO_KEY);
-            if (info != null && info.command == command) {
-                return info;
-            }
-        }
-        return null;
+  @NotNull
+  private static ConsoleView createConsole(@NotNull final Project project, @NotNull final VirtualFile workingDir) {
+    final TextConsoleBuilder consoleBuilder = TextConsoleBuilderFactory.getInstance().createBuilder(project);
+    consoleBuilder.setViewer(true);
+    //TODO consoleBuilder.addFilter(new DartConsoleFilter(project, workingDir));
+    //TODO consoleBuilder.addFilter(new DartRelativePathsConsoleFilter(project, workingDir.getPath()));
+    consoleBuilder.addFilter(new UrlFilter());
+    return consoleBuilder.getConsole();
+  }
+
+  @NotNull
+  private static ActionToolbar createToolWindowActionsBar(@NotNull final WindowContentInfo info) {
+    final DefaultActionGroup actionGroup = new DefaultActionGroup();
+
+    final RerunCommandAction rerunPubCommandAction = new RerunCommandAction(info);
+    info.rerunPubCommandAction = rerunPubCommandAction;
+    actionGroup.addAction(rerunPubCommandAction);
+
+    final StopProcessAction stopProcessAction = new StopProcessAction("Stop",
+        "Stop 'jaguar build'",
+        null);
+    info.stopProcessAction = stopProcessAction;
+    actionGroup.addAction(stopProcessAction);
+
+    actionGroup.add(ActionManager.getInstance().getAction(IdeActions.ACTION_PIN_ACTIVE_TAB));
+
+    final AnAction closeContentAction = new CloseActiveTabAction();
+    closeContentAction.getTemplatePresentation().setIcon(AllIcons.Actions.Cancel);
+    closeContentAction.getTemplatePresentation().setText(UIBundle.message("tabbed.pane.close.tab.action.name"));
+    actionGroup.add(closeContentAction);
+
+    final ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, actionGroup, false);
+    toolbar.setTargetComponent(info.console.getComponent());
+    return toolbar;
+  }
+
+
+  private static void removeOldTabs(@NotNull final ContentManager contentManager) {
+    for (Content content : contentManager.getContents()) {
+      if (!content.isPinned() && content.isCloseable() && content.getUserData(WINDOW_CONTENT_INFO_KEY) != null) {
+        contentManager.removeContent(content, false);
+      }
     }
+  }
 
+  private static class WindowContentInfo {
+    private
     @NotNull
-    private static ConsoleView createConsole(@NotNull final Project project, @NotNull final VirtualFile workingDir) {
-        final TextConsoleBuilder consoleBuilder = TextConsoleBuilderFactory.getInstance().createBuilder(project);
-        consoleBuilder.setViewer(true);
-        //TODO consoleBuilder.addFilter(new DartConsoleFilter(project, workingDir));
-        //TODO consoleBuilder.addFilter(new DartRelativePathsConsoleFilter(project, workingDir.getPath()));
-        consoleBuilder.addFilter(new UrlFilter());
-        return consoleBuilder.getConsole();
-    }
-
+    final Module module;
+    private
     @NotNull
-    private static ActionToolbar createToolWindowActionsBar(@NotNull final WindowContentInfo info) {
-        final DefaultActionGroup actionGroup = new DefaultActionGroup();
+    final VirtualFile pubspecFile;
+    private
+    @NotNull
+    final GeneralCommandLine command;
+    private
+    @NotNull
+    final String actionTitle;
+    private
+    @NotNull
+    final ConsoleView console;
+    private RerunCommandAction rerunPubCommandAction;
+    private StopProcessAction stopProcessAction;
 
-        final RerunCommandAction rerunPubCommandAction = new RerunCommandAction(info);
-        info.rerunPubCommandAction = rerunPubCommandAction;
-        actionGroup.addAction(rerunPubCommandAction);
-
-        final StopProcessAction stopProcessAction = new StopProcessAction("Stop",
-                "Stop 'jaguar build'",
-                null);
-        info.stopProcessAction = stopProcessAction;
-        actionGroup.addAction(stopProcessAction);
-
-        actionGroup.add(ActionManager.getInstance().getAction(IdeActions.ACTION_PIN_ACTIVE_TAB));
-
-        final AnAction closeContentAction = new CloseActiveTabAction();
-        closeContentAction.getTemplatePresentation().setIcon(AllIcons.Actions.Cancel);
-        closeContentAction.getTemplatePresentation().setText(UIBundle.message("tabbed.pane.close.tab.action.name"));
-        actionGroup.add(closeContentAction);
-
-        final ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, actionGroup, false);
-        toolbar.setTargetComponent(info.console.getComponent());
-        return toolbar;
+    private WindowContentInfo(@NotNull final Module module,
+                              @NotNull final VirtualFile pubspecFile,
+                              @NotNull final GeneralCommandLine command,
+                              @NotNull final String actionTitle,
+                              @NotNull final ConsoleView console) {
+      this.module = module;
+      this.pubspecFile = pubspecFile;
+      this.command = command;
+      this.actionTitle = actionTitle;
+      this.console = console;
     }
 
-
-    private static void removeOldTabs(@NotNull final ContentManager contentManager) {
-        for (Content content : contentManager.getContents()) {
-            if (!content.isPinned() && content.isCloseable() && content.getUserData(WINDOW_CONTENT_INFO_KEY) != null) {
-                contentManager.removeContent(content, false);
-            }
-        }
+    @Override
+    public boolean equals(final Object o) {
+      return o instanceof WindowContentInfo && command == ((WindowContentInfo) o).command;
     }
 
-    private static class WindowContentInfo {
-        private
-        @NotNull
-        final Module module;
-        private
-        @NotNull
-        final VirtualFile pubspecFile;
-        private
-        @NotNull
-        final GeneralCommandLine command;
-        private
-        @NotNull
-        final String actionTitle;
-        private
-        @NotNull
-        final ConsoleView console;
-        private RerunCommandAction rerunPubCommandAction;
-        private StopProcessAction stopProcessAction;
+    @Override
+    public int hashCode() {
+      return command.hashCode();
+    }
+  }
 
-        private WindowContentInfo(@NotNull final Module module,
-                                  @NotNull final VirtualFile pubspecFile,
-                                  @NotNull final GeneralCommandLine command,
-                                  @NotNull final String actionTitle,
-                                  @NotNull final ConsoleView console) {
-            this.module = module;
-            this.pubspecFile = pubspecFile;
-            this.command = command;
-            this.actionTitle = actionTitle;
-            this.console = console;
-        }
+  private static class RerunCommandAction extends DumbAwareAction {
+    @NotNull
+    private final WindowContentInfo myInfo;
 
-        @Override
-        public boolean equals(final Object o) {
-            return o instanceof WindowContentInfo && command == ((WindowContentInfo) o).command;
-        }
+    private OSProcessHandler myProcessHandler;
 
-        @Override
-        public int hashCode() {
-            return command.hashCode();
-        }
+    private RerunCommandAction(@NotNull final WindowContentInfo info) {
+      super("Rerun 'jaguar build'",
+          "Reruns 'jaguar build'",
+          AllIcons.Actions.Execute);
+      myInfo = info;
+
+      registerCustomShortcutSet(CommonShortcuts.getRerun(), info.console.getComponent());
     }
 
-    private static class RerunCommandAction extends DumbAwareAction {
-        @NotNull
-        private final WindowContentInfo myInfo;
-
-        private OSProcessHandler myProcessHandler;
-
-        private RerunCommandAction(@NotNull final WindowContentInfo info) {
-            super("Rerun 'jaguar build'",
-                    "Reruns 'jaguar build'",
-                    AllIcons.Actions.Execute);
-            myInfo = info;
-
-            registerCustomShortcutSet(CommonShortcuts.getRerun(), info.console.getComponent());
-        }
-
-        private void setProcessHandler(@NotNull final OSProcessHandler processHandler) {
-            myProcessHandler = processHandler;
-        }
-
-        @Override
-        public void update(@NotNull final AnActionEvent e) {
-            e.getPresentation().setEnabled(!isInProgress() && myProcessHandler != null && myProcessHandler.isProcessTerminated());
-        }
-
-        @Override
-        public void actionPerformed(@NotNull final AnActionEvent e) {
-            execute(myInfo.module, myInfo.pubspecFile, myInfo.command, myInfo.actionTitle);
-        }
+    private void setProcessHandler(@NotNull final OSProcessHandler processHandler) {
+      myProcessHandler = processHandler;
     }
+
+    @Override
+    public void update(@NotNull final AnActionEvent e) {
+      e.getPresentation().setEnabled(!isInProgress() && myProcessHandler != null && myProcessHandler.isProcessTerminated());
+    }
+
+    @Override
+    public void actionPerformed(@NotNull final AnActionEvent e) {
+      execute(myInfo.module, myInfo.pubspecFile, myInfo.command, myInfo.actionTitle);
+    }
+  }
 }

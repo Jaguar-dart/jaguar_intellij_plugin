@@ -11,13 +11,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class JaguarYaml {
-  @NotNull private final HashSet<String> apis = new HashSet<>();
+  @NotNull
+  private final HashSet<String> apis = new HashSet<>();
 
-  @NotNull private final HashSet<String> serializers = new HashSet<>();
+  @NotNull
+  private final HashSet<String> serializers = new HashSet<>();
 
-  @NotNull private final HashSet<String> validators = new HashSet<>();
+  @NotNull
+  private final HashSet<String> validators = new HashSet<>();
 
-  @NotNull private final HashSet<String> beans = new HashSet<>();
+  @NotNull
+  private final HashSet<String> beans = new HashSet<>();
 
   @NotNull
   public HashSet<String> getApis() {
